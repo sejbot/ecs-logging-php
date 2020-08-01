@@ -11,7 +11,7 @@ namespace Elastic\Tests\Monolog\v2\Formatter;
 use Monolog\Logger;
 use \Elastic\Tests\BaseTestCase;
 use Elastic\Monolog\v2\Formatter\ElasticCommonSchemaFormatter;
-use Elastic\Types\{Tracing, User, Service, Error};
+use Elastic\Types\{Custom, Tracing, User, Service, Error};
 use Throwable;
 
 /**
@@ -292,5 +292,41 @@ class ElasticCommonSchemaFormatterTest extends BaseTestCase
             $this->assertArrayNotHasKey($keyPrevious, $decoded['labels'], $keyPrevious);
             $this->assertArrayHasKey($keySanitized, $decoded['labels'], $keySanitized);
         }
+    }
+
+     /**
+     * @depends testFormat
+     *
+     * @covers Elastic\Monolog\v2\Formatter\ElasticCommonSchemaFormatter::__construct
+     * @covers Elastic\Monolog\v2\Formatter\ElasticCommonSchemaFormatter::format
+     */
+    public function testContextWithCustom()
+    {
+        $customFields = [
+            'product_id' => uniqid(),
+            'product_name' => md5(uniqid())
+        ];
+        $custom = new Custom('myapp', $customFields);
+
+        $msg = [
+            'level'      => Logger::NOTICE,
+            'level_name' => 'NOTICE',
+            'channel'    => 'ecs',
+            'datetime'   => new \DateTimeImmutable("@0"),
+            'message'    => md5(uniqid()),
+            'context'    => ['custom' => $custom],
+            'extra'      => [],
+        ];
+
+        $formatter = new ElasticCommonSchemaFormatter();
+        $doc = $formatter->format($msg);
+
+        $decoded = json_decode($doc, true);
+        $this->assertArrayHasKey('myapp', $decoded);
+        $this->assertArrayHasKey('product_id', $decoded['myapp']);
+        $this->assertArrayHasKey('product_name', $decoded['myapp']);
+
+        $this->assertEquals($custom->toArray()['myapp']['product_id'], $decoded['myapp']['product_id']);
+        $this->assertEquals($custom->toArray()['myapp']['product_name'], $decoded['myapp']['product_name']);
     }
 }

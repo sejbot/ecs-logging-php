@@ -94,6 +94,12 @@ class ElasticCommonSchemaFormatter extends NormalizerFormatter
             unset($record['context']['user']);
         }
 
+        // Add Custom Fields
+        if (isset($record['context']['custom']['Elastic\Types\Custom']) === true) {
+            $message += $record['context']['custom']['Elastic\Types\Custom'];
+            unset($record['context']['custom']);
+        }
+
         // Add ECS Labels
         if (empty($record['context']) === false) {
             $message['labels'] = [];
